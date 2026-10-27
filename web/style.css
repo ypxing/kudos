@@ -43,6 +43,11 @@ main {
   color: #b3261e;
   min-height: 1.5em;
 }
+.kudos-count {
+  margin: 0;
+  color: #5b5f72;
+  font-weight: 600;
+}
 .kudos-list {
   list-style: none;
   padding: 0;
