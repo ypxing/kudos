@@ -66,6 +66,7 @@ function renderItem(k: Kudos): HTMLLIElement {
 export async function mountBoard(root: HTMLElement, api: KudosApi): Promise<void> {
   const status = el("p", { className: "status" });
   status.setAttribute("role", "alert");
+  const count = el("p", { className: "kudos-count" });
   const list = el("ul", { className: "kudos-list" });
   const submit = el("button", { type: "submit" }, "Send kudos");
   const form = el(
@@ -77,10 +78,11 @@ export async function mountBoard(root: HTMLElement, api: KudosApi): Promise<void
     submit,
   );
 
-  root.replaceChildren(el("h1", {}, "Kudos board"), form, status, list);
+  root.replaceChildren(el("h1", {}, "Kudos board"), form, status, count, list);
 
   const refresh = async () => {
     const items = await api.list();
+    count.textContent = `${items.length} kudos so far`;
     list.replaceChildren(
       ...(items.length ? items.map(renderItem) : [el("li", { className: "empty" }, "No kudos yet. Send the first one!")]),
     );

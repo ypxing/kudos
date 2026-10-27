@@ -81,9 +81,9 @@ describe("mountBoard", () => {
 
   it("shows the number of kudos above the list", async () => {
     await mountBoard(root, fakeApi([sample("2", "newer", "2026-01-02"), sample("1", "older", "2026-01-01")]));
-    const count = root.querySelector(".kudos-count")!;
-    expect(count.textContent).toBe("2 kudos so far");
-    expect(count.nextElementSibling).toBe(root.querySelector(".kudos-list"));
+    const count = root.querySelector(".kudos-count");
+    expect(count?.textContent).toBe("2 kudos so far");
+    expect(count?.nextElementSibling).toBe(root.querySelector(".kudos-list"));
   });
 
   it("renders kudos text as text, not HTML", async () => {
