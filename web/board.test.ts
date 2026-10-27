@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApi, mountBoard, type KudosApi } from "./board";
-import type { Kudos } from "../api/handler";
+import { createHandler, type Kudos } from "../api/handler";
+import type { APIGatewayProxyEventV2 } from "aws-lambda";
 
 const sample = (id: string, message: string, createdAt: string): Kudos => ({
   id,
@@ -27,6 +28,30 @@ function fakeApi(initial: Kudos[] = []): KudosApi & { items: Kudos[] } {
       return item;
     },
   };
+}
+
+// Runs the real API handler, with an in-memory store, behind createApi's fetchFn,
+// so the board sees the API's own validation rather than a fake's copy of it.
+function realApi(): KudosApi {
+  const items: Kudos[] = [];
+  const handler = createHandler({
+    async list() {
+      return [...items];
+    },
+    async put(item) {
+      items.push(item);
+    },
+  });
+  const fetchFn = (async (_url: string, init?: RequestInit) => {
+    const method = init?.method ?? "GET";
+    const res = await handler({
+      body: init?.body === undefined ? undefined : String(init.body),
+      isBase64Encoded: false,
+      requestContext: { http: { method, path: "/kudos" } },
+    } as unknown as APIGatewayProxyEventV2);
+    return new Response(res.body, { status: res.statusCode, headers: res.headers as HeadersInit });
+  }) as typeof fetch;
+  return createApi("http://api", fetchFn);
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -77,6 +102,22 @@ describe("mountBoard", () => {
     root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
     await flush();
     expect(root.querySelector('[role="alert"]')!.textContent).toContain("message is required");
+  });
+
+  it("shows the API's length error and keeps the message when it is over 280 characters", async () => {
+    await mountBoard(root, realApi());
+    const message = "x".repeat(281);
+    fill(root, { from: "Cy", to: "Di", message });
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+    await flush();
+    expect(root.querySelector('[role="alert"]')!.textContent).toBe("message must be at most 280 characters");
+    expect((root.querySelector('[name="message"]') as HTMLTextAreaElement).value).toBe(message);
+  });
+
+  it("puts no maxlength on the message textarea", async () => {
+    await mountBoard(root, fakeApi());
+    expect(root.querySelector('textarea[name="message"]')!.hasAttribute("maxlength")).toBe(false);
   });
 
   it("shows the number of kudos above the list", async () => {
