@@ -1,3 +1,5 @@
 {
-  "tracker": { "kind": "local" }
+  "tracker": {
+    "kind": "github"
+  }
 }
