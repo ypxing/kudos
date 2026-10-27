@@ -81,14 +81,7 @@ export async function mountBoard(root: HTMLElement, api: KudosApi): Promise<void
   root.replaceChildren(el("h1", {}, "Kudos board"), form, status, count, list);
 
   const refresh = async () => {
-    let items: Kudos[];
-    try {
-      items = await api.list();
-    } catch (err) {
-      // A count left from an earlier load would no longer match the list.
-      count.textContent = "";
-      throw err;
-    }
+    const items = await api.list();
     count.textContent = `${items.length} kudos so far`;
     list.replaceChildren(
       ...(items.length ? items.map(renderItem) : [el("li", { className: "empty" }, "No kudos yet. Send the first one!")]),

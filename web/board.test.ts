@@ -119,7 +119,7 @@ describe("mountBoard", () => {
     expect(root.querySelector('[role="alert"]')!.textContent).toBe("Could not load kudos: network down");
   });
 
-  it("clears the count when the reload after a successful post fails", async () => {
+  it("keeps the count matching the shown list when the reload after a post fails", async () => {
     const api = fakeApi([sample("1", "older", "2026-01-01")]);
     await mountBoard(root, api);
     api.list = async () => {
@@ -129,7 +129,8 @@ describe("mountBoard", () => {
     root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
     await flush();
     await flush();
-    expect(root.querySelector(".kudos-count")?.textContent).not.toMatch(/\d/);
+    expect(root.querySelectorAll(".kudos-list li.kudos")).toHaveLength(1);
+    expect(root.querySelector(".kudos-count")?.textContent).toBe("1 kudos so far");
   });
 
   it("renders kudos text as text, not HTML", async () => {
