@@ -1,0 +1,11 @@
+{
+  "install": "pnpm install --frozen-lockfile",
+  "lint": "pnpm lint",
+  "typecheck": "pnpm typecheck",
+  "test": "CI=true pnpm test",
+  "env": null,
+  "registry_auth": null,
+  "coverage": null,
+  "integration": null,
+  "install_mode": "host"
+}

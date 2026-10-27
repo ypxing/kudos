@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      ministack:
+        image: ministackorg/ministack:1.5.33
+        ports:
+          - 4566:4566
+    env:
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Wait for MiniStack
+        run: |
+          for _ in $(seq 1 60); do
+            curl -fsS "$AWS_ENDPOINT_URL/_ministack/health" > /dev/null && exit 0
+            sleep 2
+          done
+          echo "MiniStack did not become healthy at $AWS_ENDPOINT_URL" >&2
+          exit 1
+
+      - name: Deploy to MiniStack
+        id: deploy
+        run: |
+          pnpm --silent deploy:local | tee deploy.out
+          echo "web_url=$(sed -n 's/^Web URL: //p' deploy.out)" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test
+        run: pnpm smoke "${{ steps.deploy.outputs.web_url }}"
