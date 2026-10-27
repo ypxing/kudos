@@ -116,6 +116,31 @@ describe("POST /kudos", () => {
       expect(JSON.parse(res.body as string).error).toBe("message must be at most 280 characters");
       expect(store.items).toHaveLength(0);
     });
+
+    it("accepts and stores a message of exactly 280 code points", async () => {
+      const store = memoryStore();
+      const message = "x".repeat(280);
+      const res = await post(store, message);
+      expect(res.statusCode).toBe(201);
+      expect(store.items.map((k) => k.message)).toEqual([message]);
+    });
+
+    it("counts an emoji as one character, not two UTF-16 units", async () => {
+      const store = memoryStore();
+      expect((await post(store, "😀".repeat(280))).statusCode).toBe(201);
+      const res = await post(store, "😀".repeat(281));
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body as string).error).toBe("message must be at most 280 characters");
+      expect(store.items).toHaveLength(1);
+    });
+
+    it("does not count surrounding whitespace and stores the message trimmed", async () => {
+      const store = memoryStore();
+      const message = "x".repeat(280);
+      const res = await post(store, `  \n${message}\t  `);
+      expect(res.statusCode).toBe(201);
+      expect(store.items.map((k) => k.message)).toEqual([message]);
+    });
   });
 
   it("returns 400 when there is no body", async () => {
