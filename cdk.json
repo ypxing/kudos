@@ -1,0 +1,4 @@
+{
+  "app": "node --max-old-space-size=384 --import tsx infra/app.ts",
+  "output": "cdk.out"
+}

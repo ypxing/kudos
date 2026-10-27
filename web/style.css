@@ -1,0 +1,68 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f6f7fb;
+  color: #1d1f2a;
+}
+main {
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.kudos-form {
+  display: grid;
+  gap: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+}
+.kudos-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+.kudos-form input,
+.kudos-form textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #c8cbd6;
+  border-radius: 0.25rem;
+}
+.kudos-form button {
+  justify-self: start;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: #4b4fd6;
+  color: #fff;
+  cursor: pointer;
+}
+.status {
+  color: #b3261e;
+  min-height: 1.5em;
+}
+.kudos-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.kudos {
+  background: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+}
+.kudos-message {
+  margin: 0 0 0.5rem;
+  white-space: pre-wrap;
+}
+.kudos-meta {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  color: #5b5f72;
+  font-size: 0.9rem;
+}
