@@ -23,6 +23,8 @@ export type Handler = (event: APIGatewayProxyEventV2) => Promise<APIGatewayProxy
 
 const FIELDS = ["from", "to", "message"] as const;
 
+export const MESSAGE_MAX_LENGTH = 280;
+
 function json(statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 {
   return {
     statusCode,
@@ -52,12 +54,17 @@ function validate(input: unknown): Validated {
       return { ok: false, error: `${field} is required and must be a non-empty string` };
     }
   }
+  const message = (record.message as string).trim();
+  // Count code points, not UTF-16 units, so an emoji such as 😀 counts as one character.
+  if ([...message].length > MESSAGE_MAX_LENGTH) {
+    return { ok: false, error: `message must be at most ${MESSAGE_MAX_LENGTH} characters` };
+  }
   return {
     ok: true,
     value: {
       from: (record.from as string).trim(),
       to: (record.to as string).trim(),
-      message: (record.message as string).trim(),
+      message,
     },
   };
 }

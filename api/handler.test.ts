@@ -105,6 +105,19 @@ describe("POST /kudos", () => {
     expect(res.statusCode).toBe(400);
   });
 
+  describe("message length", () => {
+    const post = (store: KudosStore, message: string) =>
+      createHandler(store)(event("POST", JSON.stringify({ from: "a", to: "b", message })));
+
+    it("rejects a message of 281 code points with 400 and stores nothing", async () => {
+      const store = memoryStore();
+      const res = await post(store, "x".repeat(281));
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body as string).error).toBe("message must be at most 280 characters");
+      expect(store.items).toHaveLength(0);
+    });
+  });
+
   it("returns 400 when there is no body", async () => {
     const res = await createHandler(memoryStore())(event("POST"));
     expect(res.statusCode).toBe(400);
