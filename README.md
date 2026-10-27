@@ -61,7 +61,9 @@ when any fails:
 - `GET /kudos` returns `200` and the kudos as a JSON array, newest first.
 - `POST /kudos` with `{"from", "to", "message"}` returns `201` and the stored item
   (`id`, `from`, `to`, `message`, `createdAt`). A missing or empty field returns `400` with
-  `{"error": "<field> is required …"}`; a body that is not a JSON object returns `400`.
+  `{"error": "<field> is required …"}`; a message longer than 280 characters (Unicode code points,
+  after trimming) returns `400` with `{"error": "message must be at most 280 characters"}`; a body
+  that is not a JSON object returns `400`.
 
 ## CI
 
