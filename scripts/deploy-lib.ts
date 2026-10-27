@@ -17,6 +17,14 @@ export function webUrlFor(endpoint: string, bucket: string): string {
   return `${endpoint}/${bucket}/index.html`;
 }
 
+/**
+ * Bucket keys for config.json. The page and smoke read it beside index.html; the copy under
+ * `index.html/` makes the literal `<web url>/config.json` resolve too.
+ */
+export function configKeys(): string[] {
+  return ["config.json", "index.html/config.json"];
+}
+
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",

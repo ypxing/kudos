@@ -5,17 +5,14 @@ import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct } from "constructs";
+import { OUTPUTS } from "./outputs";
+
+export { OUTPUTS };
 
 export interface KudosStackProps extends StackProps {
   /** Directory holding the bundled Lambda handler (`index.mjs`). */
   apiCodeDir: string;
 }
-
-export const OUTPUTS = {
-  webBucket: "WebBucketName",
-  apiId: "HttpApiId",
-  apiEndpoint: "HttpApiEndpoint",
-} as const;
 
 export class KudosStack extends Stack {
   constructor(scope: Construct, id: string, props: KudosStackProps) {

@@ -1,11 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { build as esbuild } from "esbuild";
-import { build as viteBuild } from "vite";
-import { OUTPUTS } from "../infra/stack";
-import { apiUrlFor, assertReachable, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
+import { OUTPUTS } from "../infra/outputs";
+import { apiUrlFor, assertReachable, configKeys, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
 
 const root = resolve(import.meta.dirname, "..");
 const apiDir = join(root, "dist", "api");
@@ -39,6 +36,12 @@ function cdk(...args: string[]) {
 
 async function main() {
   await assertReachable(endpoint);
+  // Loaded only once MiniStack answers, so an unreachable endpoint fails fast.
+  const [{ build: esbuild }, { build: viteBuild }, { PutObjectCommand, S3Client }] = await Promise.all([
+    import("esbuild"),
+    import("vite"),
+    import("@aws-sdk/client-s3"),
+  ]);
 
   log("bundling the API handler");
   await esbuild({
@@ -81,7 +84,9 @@ async function main() {
   for (const key of listFiles(webDir)) {
     await put(key, readFileSync(join(webDir, key)));
   }
-  await put("config.json", JSON.stringify({ apiUrl }));
+  for (const key of configKeys()) {
+    await put(key, JSON.stringify({ apiUrl }));
+  }
 
   console.log(`Web URL: ${webUrl}`);
   console.log(`API URL: ${apiUrl}`);

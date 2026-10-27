@@ -40,8 +40,8 @@ Web URL: http://localhost:4566/<bucket>/index.html
 API URL: http://localhost:4566/_aws/execute-api/<apiId>/$default
 ```
 
-MiniStack does not serve a bucket's index document, so the web URL names `index.html`; `config.json` sits
-beside it in the bucket. When MiniStack is unreachable, the deploy exits 1 naming `AWS_ENDPOINT_URL`.
+MiniStack does not serve a bucket's index document, so the web URL names `index.html`. `config.json` is served
+both beside it and at `<web url>/config.json`. When MiniStack is unreachable, the deploy exits 1 naming `AWS_ENDPOINT_URL`.
 
 ## Smoke test
 

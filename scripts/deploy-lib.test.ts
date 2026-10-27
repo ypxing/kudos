@@ -1,7 +1,15 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { apiUrlFor, assertReachable, contentTypeFor, DEFAULT_ENDPOINT, endpointFrom, webUrlFor } from "./deploy-lib";
+import {
+  apiUrlFor,
+  assertReachable,
+  configKeys,
+  contentTypeFor,
+  DEFAULT_ENDPOINT,
+  endpointFrom,
+  webUrlFor,
+} from "./deploy-lib";
 
 describe("endpointFrom", () => {
   it("defaults to MiniStack on localhost:4566", () => {
@@ -23,6 +31,15 @@ describe("URLs", () => {
 
   it("addresses the page by path in the web bucket", () => {
     expect(webUrlFor("http://localhost:4566", "web-bucket")).toBe("http://localhost:4566/web-bucket/index.html");
+  });
+});
+
+describe("configKeys", () => {
+  it("serves config.json both beside the page and at <web url>/config.json", () => {
+    const webUrl = webUrlFor("http://localhost:4566", "b");
+    const urls = configKeys().map((key) => `http://localhost:4566/b/${key}`);
+    expect(urls).toContain(new URL("config.json", webUrl).toString());
+    expect(urls).toContain(`${webUrl}/config.json`);
   });
 });
 
