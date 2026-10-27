@@ -86,6 +86,52 @@ describe("mountBoard", () => {
     expect(count?.nextElementSibling).toBe(root.querySelector(".kudos-list"));
   });
 
+  it("shows a zero count when there are no kudos", async () => {
+    await mountBoard(root, fakeApi());
+    expect(root.querySelector(".kudos-count")?.textContent).toBe("0 kudos so far");
+  });
+
+  it("raises the count by one after a successful post", async () => {
+    await mountBoard(root, fakeApi([sample("1", "older", "2026-01-01")]));
+    fill(root, { from: "Cy", to: "Di", message: "Great demo" });
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+    await flush();
+    expect(root.querySelector(".kudos-count")?.textContent).toBe("2 kudos so far");
+  });
+
+  it("leaves the count unchanged when a post fails", async () => {
+    await mountBoard(root, fakeApi([sample("1", "older", "2026-01-01")]));
+    fill(root, { from: "Cy", to: "Di", message: "" });
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+    expect(root.querySelector('[role="alert"]')!.textContent).toContain("message is required");
+    expect(root.querySelector(".kudos-count")?.textContent).toBe("1 kudos so far");
+  });
+
+  it("shows no count number when the initial load fails", async () => {
+    const api = fakeApi();
+    api.list = async () => {
+      throw new Error("network down");
+    };
+    await mountBoard(root, api);
+    expect(root.querySelector(".kudos-count")?.textContent).not.toMatch(/\d/);
+    expect(root.querySelector('[role="alert"]')!.textContent).toBe("Could not load kudos: network down");
+  });
+
+  it("clears the count when the reload after a successful post fails", async () => {
+    const api = fakeApi([sample("1", "older", "2026-01-01")]);
+    await mountBoard(root, api);
+    api.list = async () => {
+      throw new Error("network down");
+    };
+    fill(root, { from: "Cy", to: "Di", message: "Great demo" });
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+    await flush();
+    expect(root.querySelector(".kudos-count")?.textContent).not.toMatch(/\d/);
+  });
+
   it("renders kudos text as text, not HTML", async () => {
     await mountBoard(root, fakeApi([sample("1", "<img src=x onerror=alert(1)>", "2026-01-01")]));
     expect(root.querySelector("li img")).toBeNull();
