@@ -23,17 +23,10 @@ export type Handler = (event: APIGatewayProxyEventV2) => Promise<APIGatewayProxy
 
 const FIELDS = ["from", "to", "message"] as const;
 
-// The page is served from the S3 website origin, so every response carries CORS headers.
-const CORS_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET,POST,OPTIONS",
-  "access-control-allow-headers": "content-type",
-};
-
 function json(statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 {
   return {
     statusCode,
-    headers: { "content-type": "application/json", ...CORS_HEADERS },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   };
 }
@@ -76,9 +69,6 @@ export function createHandler(store: KudosStore, options: HandlerOptions = {}): 
   return async (event) => {
     const method = event.requestContext?.http?.method ?? "GET";
     try {
-      if (method === "OPTIONS") {
-        return { statusCode: 204, headers: CORS_HEADERS };
-      }
       if (method === "GET") {
         const items = await store.list();
         items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

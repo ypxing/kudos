@@ -112,12 +112,6 @@ describe("POST /kudos", () => {
 });
 
 describe("other requests", () => {
-  it("answers CORS preflight", async () => {
-    const res = await createHandler(memoryStore())(event("OPTIONS"));
-    expect(res.statusCode).toBe(204);
-    expect(res.headers?.["access-control-allow-origin"]).toBe("*");
-  });
-
   it("returns 405 for an unsupported method", async () => {
     const res = await createHandler(memoryStore())(event("DELETE"));
     expect(res.statusCode).toBe(405);
