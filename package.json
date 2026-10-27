@@ -11,7 +11,6 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsx scripts/build.ts",
     "dev:web": "vite web",
     "deploy:local": "tsx scripts/deploy-local.ts",
     "smoke": "tsx scripts/smoke.ts"
