@@ -79,6 +79,13 @@ describe("mountBoard", () => {
     expect(root.querySelector('[role="alert"]')!.textContent).toContain("message is required");
   });
 
+  it("shows the number of kudos above the list", async () => {
+    await mountBoard(root, fakeApi([sample("2", "newer", "2026-01-02"), sample("1", "older", "2026-01-01")]));
+    const count = root.querySelector(".kudos-count")!;
+    expect(count.textContent).toBe("2 kudos so far");
+    expect(count.nextElementSibling).toBe(root.querySelector(".kudos-list"));
+  });
+
   it("renders kudos text as text, not HTML", async () => {
     await mountBoard(root, fakeApi([sample("1", "<img src=x onerror=alert(1)>", "2026-01-01")]));
     expect(root.querySelector("li img")).toBeNull();
