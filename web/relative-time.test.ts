@@ -12,4 +12,10 @@ describe("relativeTime", () => {
   it("reads 'just now' under a minute", () => {
     expect(ago(30 * SEC)).toBe("just now");
   });
+
+  it("counts whole minutes under an hour", () => {
+    expect(ago(5 * MIN)).toBe("5 minutes ago");
+    expect(ago(MIN)).toBe("1 minute ago");
+    expect(ago(59 * MIN + 59 * SEC)).toBe("59 minutes ago");
+  });
 });
