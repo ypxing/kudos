@@ -1,14 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { OUTPUTS } from "../infra/outputs";
+import { OUTPUTS, STACK_NAME as STACK } from "../infra/outputs";
 import { apiPathFor, apiUrlFor, assertReachable, configKeys, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
 
 const root = resolve(import.meta.dirname, "..");
 const apiDir = join(root, "dist", "api");
 const webDir = join(root, "dist", "web");
 const outputsFile = join(root, "cdk.out", "outputs.json");
-const STACK = "KudosStack";
 
 // MiniStack accepts any credentials; real values in the environment still win.
 const env: NodeJS.ProcessEnv = {
