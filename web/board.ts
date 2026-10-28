@@ -1,4 +1,5 @@
 import type { Kudos } from "../api/handler";
+import { relativeTime } from "./relative-time";
 
 export type NewKudos = Pick<Kudos, "from" | "to" | "message">;
 
@@ -58,7 +59,7 @@ function renderItem(k: Kudos): HTMLLIElement {
       "p",
       { className: "kudos-meta" },
       `${k.from} → ${k.to}`,
-      el("time", { dateTime: k.createdAt }, Number.isNaN(when.getTime()) ? k.createdAt : when.toLocaleString()),
+      el("time", { dateTime: k.createdAt }, Number.isNaN(when.getTime()) ? k.createdAt : relativeTime(when, new Date())),
     ),
   );
 }

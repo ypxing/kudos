@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApi, mountBoard, type KudosApi } from "./board";
 import { createHandler, type Kudos } from "../api/handler";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
@@ -178,6 +178,47 @@ describe("mountBoard", () => {
     await mountBoard(root, fakeApi([sample("1", "<img src=x onerror=alert(1)>", "2026-01-01")]));
     expect(root.querySelector("li img")).toBeNull();
     expect(root.querySelector("li")!.textContent).toContain("<img");
+  });
+});
+
+describe("mountBoard relative times", () => {
+  const now = new Date("2026-06-15T12:00:00Z");
+  const before = (ms: number) => new Date(now.getTime() - ms).toISOString();
+  const MIN = 60_000;
+  let root: HTMLElement;
+
+  beforeEach(() => {
+    // setTimeout stays real so flush() still lets the board's promises settle.
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(now);
+    document.body.innerHTML = "";
+    root = document.createElement("main");
+    document.body.append(root);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const times = () => [...root.querySelectorAll("time")];
+
+  it("labels each kudos with how long ago it was sent", async () => {
+    await mountBoard(
+      root,
+      fakeApi([
+        sample("5", "a", before(5 * MIN)),
+        sample("4", "b", before(30_000)),
+        sample("3", "c", before(3 * 60 * MIN)),
+        sample("2", "d", before(24 * 60 * MIN)),
+        sample("1", "e", before(90 * 24 * 60 * MIN)),
+      ]),
+    );
+    expect(times().map((t) => t.textContent)).toEqual([
+      "5 minutes ago",
+      "just now",
+      "3 hours ago",
+      "yesterday",
+      "3 months ago",
+    ]);
   });
 });
 
