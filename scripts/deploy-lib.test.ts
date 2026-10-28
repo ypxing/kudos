@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import {
+  apiPathFor,
   apiUrlFor,
   assertReachable,
   configKeys,
@@ -23,6 +24,10 @@ describe("endpointFrom", () => {
 });
 
 describe("URLs", () => {
+  it("gives the HTTP API's default stage as a path, so the page calls whatever host serves it", () => {
+    expect(apiPathFor("abc123")).toBe("/_aws/execute-api/abc123/$default");
+  });
+
   it("addresses the HTTP API's default stage by path on the endpoint", () => {
     expect(apiUrlFor("http://localhost:4566", "abc123")).toBe(
       "http://localhost:4566/_aws/execute-api/abc123/$default",

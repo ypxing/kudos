@@ -20,5 +20,6 @@ export async function loadConfig(webUrl: string, fetchFn: typeof fetch = fetch):
   if (typeof body.apiUrl !== "string" || body.apiUrl === "") {
     throw new Error(`${url} has no apiUrl`);
   }
-  return { apiUrl: body.apiUrl.replace(/\/+$/, "") };
+  // A path apiUrl resolves against the host that served the page (localhost, or a tunnel such as ngrok).
+  return { apiUrl: new URL(body.apiUrl, url).toString().replace(/\/+$/, "") };
 }

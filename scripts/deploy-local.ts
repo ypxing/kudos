@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { OUTPUTS } from "../infra/outputs";
-import { apiUrlFor, assertReachable, configKeys, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
+import { apiPathFor, apiUrlFor, assertReachable, configKeys, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
 
 const root = resolve(import.meta.dirname, "..");
 const apiDir = join(root, "dist", "api");
@@ -84,8 +84,10 @@ async function main() {
   for (const key of listFiles(webDir)) {
     await put(key, readFileSync(join(webDir, key)));
   }
+  // The page and the API share MiniStack's host, so config.json names the API by path: the page then
+  // calls whichever host served it, localhost or a tunnel.
   for (const key of configKeys()) {
-    await put(key, JSON.stringify({ apiUrl }));
+    await put(key, JSON.stringify({ apiUrl: apiPathFor(outputs[OUTPUTS.apiId]) }));
   }
 
   console.log(`Web URL: ${webUrl}`);
