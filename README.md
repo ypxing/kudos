@@ -54,7 +54,14 @@ when any fails:
 
 - `page-loads`: the web URL returns 200 HTML
 - `list-kudos`: `GET /kudos` returns a JSON array
-- `post-kudos`: a posted kudos is then returned by `GET /kudos`
+- `post-kudos`: a posted kudos is then returned by `GET /kudos`, and is deleted afterwards so the board is left
+  as smoke found it
+
+Smoke deletes its kudos straight from the DynamoDB table, by the `id` the POST returned, finding the table from
+`KudosStack`'s `TableName` output. It uses the deploy's AWS settings: the endpoint is `AWS_ENDPOINT_URL`, or else
+the web URL's origin (the MiniStack serving the page), with dummy credentials and region `us-east-1`; real
+`AWS_*` values win. `post-kudos` fails, and smoke exits 1, if the table can't be found (nothing is posted), the
+delete fails, or the kudos is still listed after it. The public API itself has no delete route.
 
 ## API
 
