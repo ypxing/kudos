@@ -2,23 +2,25 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { OUTPUTS, STACK_NAME as STACK } from "../infra/outputs";
-import { apiPathFor, apiUrlFor, assertReachable, configKeys, contentTypeFor, endpointFrom, listFiles, webUrlFor } from "./deploy-lib";
+import {
+  apiPathFor,
+  apiUrlFor,
+  assertReachable,
+  awsClientConfig,
+  awsEnvFrom,
+  configKeys,
+  contentTypeFor,
+  listFiles,
+  webUrlFor,
+} from "./deploy-lib";
 
 const root = resolve(import.meta.dirname, "..");
 const apiDir = join(root, "dist", "api");
 const webDir = join(root, "dist", "web");
 const outputsFile = join(root, "cdk.out", "outputs.json");
 
-// MiniStack accepts any credentials; real values in the environment still win.
-const env: NodeJS.ProcessEnv = {
-  AWS_ACCESS_KEY_ID: "test",
-  AWS_SECRET_ACCESS_KEY: "test",
-  AWS_REGION: "us-east-1",
-  ...process.env,
-};
-env.AWS_ENDPOINT_URL = endpointFrom(process.env);
-env.AWS_DEFAULT_REGION ??= env.AWS_REGION;
-const endpoint = env.AWS_ENDPOINT_URL;
+const env = awsEnvFrom(process.env);
+const endpoint = env.AWS_ENDPOINT_URL as string;
 
 function log(message: string) {
   console.error(`deploy:local: ${message}`);
@@ -68,16 +70,7 @@ async function main() {
   const webUrl = webUrlFor(endpoint, bucket);
 
   log(`uploading the web page to s3://${bucket}`);
-  const s3 = new S3Client({
-    endpoint,
-    forcePathStyle: true,
-    region: env.AWS_REGION,
-    credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID as string,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY as string,
-      sessionToken: env.AWS_SESSION_TOKEN,
-    },
-  });
+  const s3 = new S3Client({ ...awsClientConfig(env), forcePathStyle: true });
   const put = (key: string, body: Buffer | string) =>
     s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentTypeFor(key) }));
   for (const key of listFiles(webDir)) {
