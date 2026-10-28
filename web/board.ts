@@ -104,6 +104,12 @@ export async function mountBoard(root: HTMLElement, api: KudosApi): Promise<void
     );
   };
 
+  // mountBoard runs once per page, so the interval is never cleared.
+  setInterval(() => {
+    const now = new Date();
+    for (const time of list.querySelectorAll("time")) labelTime(time, now);
+  }, 60_000);
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(form);

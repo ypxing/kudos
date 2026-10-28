@@ -235,6 +235,28 @@ describe("mountBoard relative times", () => {
     expect(invalid.dateTime).toBe("not a date");
     expect(invalid.hasAttribute("title")).toBe(false);
   });
+
+  it("refreshes the labels every minute without calling the API again", async () => {
+    const api = fakeApi([sample("2", "a", before(0)), sample("1", "b", "not a date")]);
+    const list = vi.spyOn(api, "list");
+    await mountBoard(root, api);
+    expect(times()[0].textContent).toBe("just now");
+    vi.advanceTimersByTime(60_000);
+    expect(times().map((t) => t.textContent)).toEqual(["1 minute ago", "not a date"]);
+    expect(times()[1].hasAttribute("title")).toBe(false);
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives kudos that appear after a post relative labels and refreshes them", async () => {
+    await mountBoard(root, fakeApi([sample("1", "older", before(5 * MIN))]));
+    fill(root, { from: "Cy", to: "Di", message: "Great demo" });
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+    await flush();
+    expect(times().map((t) => t.textContent)).toEqual(["just now", "5 minutes ago"]);
+    vi.advanceTimersByTime(2 * 60_000);
+    expect(times().map((t) => t.textContent)).toEqual(["2 minutes ago", "7 minutes ago"]);
+  });
 });
 
 describe("createApi", () => {
