@@ -75,6 +75,47 @@ describe("runSmoke", () => {
     expect(current.items).toEqual([someoneElse]);
   });
 
+  it("still deletes the posted kudos when the read-back fails, reporting the read-back", async () => {
+    const routes = healthyApp();
+    routes[`GET ${API}/kudos`] = () => Response.json([]);
+    const results = await runSmoke(WEB, fakeFetch(routes));
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toContain("not returned");
+    expect(current.deleted).toEqual(["id-0"]);
+  });
+
+  it("fails post-kudos naming the delete when the delete fails", async () => {
+    const routes = healthyApp();
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => async () => {
+      throw new Error("ResourceNotFoundException");
+    });
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toMatch(/cannot delete the posted kudos id-0.*ResourceNotFoundException/);
+  });
+
+  it("fails post-kudos when the posted kudos is still listed after the delete", async () => {
+    const routes = healthyApp();
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => async () => {});
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toContain("still returned");
+  });
+
+  it("fails post-kudos without posting when the table name cannot be read", async () => {
+    const routes = healthyApp();
+    let posted = false;
+    const post = routes[`POST ${API}/kudos`];
+    routes[`POST ${API}/kudos`] = (init) => {
+      posted = true;
+      return post(init);
+    };
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => {
+      throw new Error("stack KudosStack has no TableName output");
+    });
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toMatch(/table name.*TableName/);
+    expect(posted).toBe(false);
+  });
+
   it("fails page-loads when the page is not HTML", async () => {
     const routes = healthyApp();
     routes[`GET ${WEB}`] = () => Response.json({});
