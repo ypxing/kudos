@@ -8,8 +8,12 @@ export function endpointFrom(env: NodeJS.ProcessEnv): string {
 }
 
 /** MiniStack serves HTTP APIs by path, which browsers reach without `*.localhost` DNS. */
+export function apiPathFor(apiId: string): string {
+  return `/_aws/execute-api/${apiId}/$default`;
+}
+
 export function apiUrlFor(endpoint: string, apiId: string): string {
-  return `${endpoint}/_aws/execute-api/${apiId}/$default`;
+  return `${endpoint}${apiPathFor(apiId)}`;
 }
 
 /** MiniStack does not serve a bucket's index document, so the URL names the page itself. */
