@@ -3,8 +3,34 @@ import { extname, join, relative, sep } from "node:path";
 
 export const DEFAULT_ENDPOINT = "http://localhost:4566";
 
-export function endpointFrom(env: NodeJS.ProcessEnv): string {
-  return (env.AWS_ENDPOINT_URL || DEFAULT_ENDPOINT).replace(/\/+$/, "");
+export function endpointFrom(env: NodeJS.ProcessEnv, fallback = DEFAULT_ENDPOINT): string {
+  return (env.AWS_ENDPOINT_URL || fallback).replace(/\/+$/, "");
+}
+
+/** The AWS settings deploy and smoke share. MiniStack accepts any credentials; real values in `env` still win. */
+export function awsEnvFrom(env: NodeJS.ProcessEnv, fallbackEndpoint = DEFAULT_ENDPOINT): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {
+    AWS_ACCESS_KEY_ID: "test",
+    AWS_SECRET_ACCESS_KEY: "test",
+    AWS_REGION: "us-east-1",
+    ...env,
+  };
+  out.AWS_ENDPOINT_URL = endpointFrom(env, fallbackEndpoint);
+  out.AWS_DEFAULT_REGION ??= out.AWS_REGION;
+  return out;
+}
+
+/** Client options for an AWS SDK client from `awsEnvFrom`'s settings. */
+export function awsClientConfig(env: NodeJS.ProcessEnv) {
+  return {
+    endpoint: env.AWS_ENDPOINT_URL,
+    region: env.AWS_REGION,
+    credentials: {
+      accessKeyId: env.AWS_ACCESS_KEY_ID as string,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY as string,
+      sessionToken: env.AWS_SESSION_TOKEN,
+    },
+  };
 }
 
 /** MiniStack serves HTTP APIs by path, which browsers reach without `*.localhost` DNS. */

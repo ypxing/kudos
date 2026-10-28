@@ -5,6 +5,7 @@ import {
   apiPathFor,
   apiUrlFor,
   assertReachable,
+  awsEnvFrom,
   configKeys,
   contentTypeFor,
   DEFAULT_ENDPOINT,
@@ -20,6 +21,36 @@ describe("endpointFrom", () => {
 
   it("uses AWS_ENDPOINT_URL without a trailing slash", () => {
     expect(endpointFrom({ AWS_ENDPOINT_URL: "http://ministack:4566/" })).toBe("http://ministack:4566");
+  });
+});
+
+describe("awsEnvFrom", () => {
+  it("fills MiniStack's dummy credentials, region and default endpoint", () => {
+    expect(awsEnvFrom({})).toMatchObject({
+      AWS_ACCESS_KEY_ID: "test",
+      AWS_SECRET_ACCESS_KEY: "test",
+      AWS_REGION: "us-east-1",
+      AWS_DEFAULT_REGION: "us-east-1",
+      AWS_ENDPOINT_URL: DEFAULT_ENDPOINT,
+    });
+  });
+
+  it("uses the given endpoint when AWS_ENDPOINT_URL is unset", () => {
+    expect(awsEnvFrom({}, "http://remote:4566").AWS_ENDPOINT_URL).toBe("http://remote:4566");
+  });
+
+  it("lets real AWS_* values win", () => {
+    const env = awsEnvFrom(
+      { AWS_ACCESS_KEY_ID: "k", AWS_SECRET_ACCESS_KEY: "s", AWS_REGION: "eu-west-1", AWS_ENDPOINT_URL: "http://e:1/" },
+      "http://remote:4566",
+    );
+    expect(env).toMatchObject({
+      AWS_ACCESS_KEY_ID: "k",
+      AWS_SECRET_ACCESS_KEY: "s",
+      AWS_REGION: "eu-west-1",
+      AWS_DEFAULT_REGION: "eu-west-1",
+      AWS_ENDPOINT_URL: "http://e:1",
+    });
   });
 });
 

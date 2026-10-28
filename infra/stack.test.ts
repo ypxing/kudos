@@ -44,4 +44,10 @@ describe("KudosStack", () => {
       template.hasOutput(name, {});
     }
   });
+
+  it("exports the kudos table's name as TableName", () => {
+    const [tableId] = Object.keys(template.findResources("AWS::DynamoDB::Table"));
+    expect(OUTPUTS.tableName).toBe("TableName");
+    template.hasOutput("TableName", { Value: { Ref: tableId } });
+  });
 });

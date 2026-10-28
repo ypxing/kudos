@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatResults, runSmoke } from "./smoke-checks";
+import { formatResults, type PrepareDelete, runSmoke as runSmokeWith } from "./smoke-checks";
 
 type Route = (init?: RequestInit) => Response | Promise<Response>;
 
@@ -17,15 +17,39 @@ const WEB = "http://host/bucket/index.html";
 const CONFIG = "http://host/bucket/config.json";
 const API = "http://host/api";
 
-function healthyApp(): Record<string, Route> {
-  const items: unknown[] = [];
+interface Board {
+  items: { id: string }[];
+  deleted: string[];
+  prepareDelete: PrepareDelete;
+}
+
+/** A fake table behind the fake API: deleting by id removes the item from what GET /kudos lists. */
+function board(): Board {
+  const b: Board = {
+    items: [],
+    deleted: [],
+    prepareDelete: async () => async (id) => {
+      b.deleted.push(id);
+      b.items = b.items.filter((k) => k.id !== id);
+    },
+  };
+  return b;
+}
+
+let current: Board;
+
+function runSmoke(webUrl: string, fetchFn: typeof fetch, prepareDelete = current.prepareDelete) {
+  return runSmokeWith(webUrl, fetchFn, prepareDelete);
+}
+
+function healthyApp(b: Board = (current = board())): Record<string, Route> {
   return {
     [`GET ${WEB}`]: () => new Response("<!doctype html><title>Kudos</title>", { headers: { "content-type": "text/html" } }),
     [`GET ${CONFIG}`]: () => Response.json({ apiUrl: API }),
-    [`GET ${API}/kudos`]: () => Response.json(items),
+    [`GET ${API}/kudos`]: () => Response.json(b.items),
     [`POST ${API}/kudos`]: (init) => {
-      const item = { id: `id-${items.length}`, ...JSON.parse(String(init?.body)) };
-      items.unshift(item);
+      const item = { id: `id-${b.items.length}`, ...JSON.parse(String(init?.body)) };
+      b.items.unshift(item);
       return Response.json(item, { status: 201 });
     },
   };
@@ -39,6 +63,57 @@ describe("runSmoke", () => {
       { check: "list-kudos", ok: true },
       { check: "post-kudos", ok: true },
     ]);
+  });
+
+  it("deletes the kudos it posted by its id, and only that one", async () => {
+    const routes = healthyApp();
+    const someoneElse = { id: "real", from: "smoke", to: "smoke", message: "a real kudos" };
+    current.items.push(someoneElse);
+    const results = await runSmoke(WEB, fakeFetch(routes));
+    expect(results[2]).toEqual({ check: "post-kudos", ok: true });
+    expect(current.deleted).toEqual(["id-1"]);
+    expect(current.items).toEqual([someoneElse]);
+  });
+
+  it("still deletes the posted kudos when the read-back fails, reporting the read-back", async () => {
+    const routes = healthyApp();
+    routes[`GET ${API}/kudos`] = () => Response.json([]);
+    const results = await runSmoke(WEB, fakeFetch(routes));
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toContain("not returned");
+    expect(current.deleted).toEqual(["id-0"]);
+  });
+
+  it("fails post-kudos naming the delete when the delete fails", async () => {
+    const routes = healthyApp();
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => async () => {
+      throw new Error("ResourceNotFoundException");
+    });
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toMatch(/cannot delete the posted kudos id-0.*ResourceNotFoundException/);
+  });
+
+  it("fails post-kudos when the posted kudos is still listed after the delete", async () => {
+    const routes = healthyApp();
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => async () => {});
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toContain("still returned");
+  });
+
+  it("fails post-kudos without posting when the table name cannot be read", async () => {
+    const routes = healthyApp();
+    let posted = false;
+    const post = routes[`POST ${API}/kudos`];
+    routes[`POST ${API}/kudos`] = (init) => {
+      posted = true;
+      return post(init);
+    };
+    const results = await runSmoke(WEB, fakeFetch(routes), async () => {
+      throw new Error("stack KudosStack has no TableName output");
+    });
+    expect(results[2]).toMatchObject({ check: "post-kudos", ok: false });
+    expect(results[2].reason).toMatch(/table name.*TableName/);
+    expect(posted).toBe(false);
   });
 
   it("fails page-loads when the page is not HTML", async () => {
@@ -98,6 +173,7 @@ describe("runSmoke", () => {
   });
 
   it("fails every check when the host is unreachable", async () => {
+    current = board();
     const results = await runSmoke(WEB, fakeFetch({}));
     expect(results.map((r) => r.ok)).toEqual([false, false, false]);
   });

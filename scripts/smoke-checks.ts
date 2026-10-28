@@ -37,7 +37,15 @@ async function listKudos(apiUrl: string, fetchFn: typeof fetch): Promise<unknown
   return body;
 }
 
-export async function runSmoke(webUrl: string, fetchFn: typeof fetch = fetch): Promise<CheckResult[]> {
+function lists(items: unknown[], id: string): boolean {
+  return items.some((k) => (k as { id?: unknown }).id === id);
+}
+
+export type DeleteKudos = (id: string) => Promise<void>;
+/** Finds where the posted kudos will be deleted from; run before posting, so a cleanup that can't run posts nothing. */
+export type PrepareDelete = () => Promise<DeleteKudos>;
+
+export async function runSmoke(webUrl: string, fetchFn: typeof fetch, prepareDelete: PrepareDelete): Promise<CheckResult[]> {
   const pageLoads = await run("page-loads", async () => {
     const res = await fetchFn(webUrl);
     if (res.status !== 200) throw new CheckFailed(`GET ${webUrl} returned ${res.status}`);
@@ -63,6 +71,12 @@ export async function runSmoke(webUrl: string, fetchFn: typeof fetch = fetch): P
 
   const post = await run("post-kudos", async () => {
     const url = await api();
+    let deleteKudos: DeleteKudos;
+    try {
+      deleteKudos = await prepareDelete();
+    } catch (err) {
+      throw new CheckFailed(`cannot read the kudos table name, so nothing was posted: ${describe(err)}`);
+    }
     const kudos = { from: "smoke", to: "smoke", message: `smoke test ${new Date().toISOString()}` };
     const res = await fetchFn(`${url}/kudos`, {
       method: "POST",
@@ -70,10 +84,30 @@ export async function runSmoke(webUrl: string, fetchFn: typeof fetch = fetch): P
       body: JSON.stringify(kudos),
     });
     if (res.status !== 201) throw new CheckFailed(`POST ${url}/kudos returned ${res.status}`);
-    const created = (await res.json()) as { id?: unknown };
-    const items = await listKudos(url, fetchFn);
-    if (!items.some((k) => (k as { id?: unknown }).id === created.id)) {
-      throw new CheckFailed(`the posted kudos ${String(created.id)} was not returned by GET ${url}/kudos`);
+    const created = (await res.json().catch(() => ({}))) as { id?: unknown };
+    if (typeof created.id !== "string" || !created.id) {
+      throw new CheckFailed(`POST ${url}/kudos returned no id, so the posted kudos cannot be deleted`);
+    }
+    const id = created.id;
+
+    let readBackError: unknown;
+    try {
+      if (!lists(await listKudos(url, fetchFn), id)) {
+        throw new CheckFailed(`the posted kudos ${id} was not returned by GET ${url}/kudos`);
+      }
+    } catch (err) {
+      readBackError = err;
+    }
+    try {
+      await deleteKudos(id);
+    } catch (err) {
+      const why = `cannot delete the posted kudos ${id}: ${describe(err)}`;
+      throw new CheckFailed(readBackError ? `${describe(readBackError)}; ${why}` : why);
+    }
+    if (readBackError) throw readBackError;
+
+    if (lists(await listKudos(url, fetchFn), id)) {
+      throw new CheckFailed(`the posted kudos ${id} is still returned by GET ${url}/kudos after it was deleted`);
     }
   });
 

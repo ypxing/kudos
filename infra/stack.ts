@@ -59,5 +59,6 @@ export class KudosStack extends Stack {
     new CfnOutput(this, OUTPUTS.webBucket, { value: webBucket.bucketName });
     new CfnOutput(this, OUTPUTS.apiId, { value: api.apiId });
     new CfnOutput(this, OUTPUTS.apiEndpoint, { value: api.apiEndpoint });
+    new CfnOutput(this, OUTPUTS.tableName, { value: table.tableName });
   }
 }
