@@ -49,8 +49,17 @@ function field(name: keyof NewKudos, label: string, multiline = false): HTMLLabe
   return el("label", {}, label, input);
 }
 
+// An unparseable dateTime keeps its raw text and gets no title.
+function labelTime(time: HTMLTimeElement, now: Date): void {
+  const when = new Date(time.dateTime);
+  if (Number.isNaN(when.getTime())) return;
+  time.textContent = relativeTime(when, now);
+  time.title = when.toLocaleString();
+}
+
 function renderItem(k: Kudos): HTMLLIElement {
-  const when = new Date(k.createdAt);
+  const time = el("time", { dateTime: k.createdAt }, k.createdAt);
+  labelTime(time, new Date());
   return el(
     "li",
     { className: "kudos" },
@@ -59,7 +68,7 @@ function renderItem(k: Kudos): HTMLLIElement {
       "p",
       { className: "kudos-meta" },
       `${k.from} → ${k.to}`,
-      el("time", { dateTime: k.createdAt }, Number.isNaN(when.getTime()) ? k.createdAt : relativeTime(when, new Date())),
+      time,
     ),
   );
 }

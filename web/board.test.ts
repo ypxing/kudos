@@ -220,6 +220,21 @@ describe("mountBoard relative times", () => {
       "3 months ago",
     ]);
   });
+
+  it("shows 'just now' for a future time and the raw value when unparseable", async () => {
+    await mountBoard(root, fakeApi([sample("2", "a", before(-3 * MIN)), sample("1", "b", "not a date")]));
+    expect(times().map((t) => t.textContent)).toEqual(["just now", "not a date"]);
+  });
+
+  it("keeps dateTime as createdAt and puts the exact local time in title, for valid dates only", async () => {
+    const createdAt = before(5 * MIN);
+    await mountBoard(root, fakeApi([sample("2", "a", createdAt), sample("1", "b", "not a date")]));
+    const [valid, invalid] = times();
+    expect(valid.dateTime).toBe(createdAt);
+    expect(valid.title).toBe(new Date(createdAt).toLocaleString());
+    expect(invalid.dateTime).toBe("not a date");
+    expect(invalid.hasAttribute("title")).toBe(false);
+  });
 });
 
 describe("createApi", () => {
